@@ -162,34 +162,6 @@ app.post("/api/vault", async (req, res) => {
 });
 
 
-// Get Vault Items
-// app.get("home/:userId", async (req, res) => {
-//   const { userId } = req.params;
-//   try {
-//     const items = await VaultItem.find({ userId });
-//     res.json(items);
-//   } catch (err) {
-//     res.status(500).json({ error: "Error fetching vault items" });
-//   }
-// });
-// app.get("/home/:userId", async (req, res) => {
-//   const { userId } = req.params;
-
-//   try {
-//     const items = await VaultItem.find({ userId }).sort({ createdAt: -1 });
-
-//     // Decrypt passwords before sending
-//     const decrypted = items.map(it => ({
-//       ...it._doc,
-//       password: decryptText(it.password), // <--- decrypted here
-//     }));
-
-//     res.json(decrypted);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: "Error fetching vault items" });
-//   }
-// });
 
 
 
