@@ -26,16 +26,15 @@ const userSchema = new mongoose.Schema({
 });
 
 const vaultSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  name: { type: String, required: true },
-  username: String,
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User12", required: true },
+  siteName: { type: String, required: true },
   link: String,
-  notes: String,
-  password: { type: String, required: true },
+  password: { type: String, required: true }, // will be encrypted
   createdAt: { type: Date, default: Date.now },
 });
 
-const User = mongoose.model("User", userSchema);
+
+const User = mongoose.model("User12", userSchema);
 const VaultItem = mongoose.model("VaultItem", vaultSchema);
 
 
@@ -50,24 +49,86 @@ mongoose
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 
-app.post("/api/signup", async (req, res) => {
-  const { name, email, password, secretKey } = req.body;
-  if (!name || !email || !password || !secretKey)
-    return res.status(400).json({ error: "All fields required" });
+const algorithm = "aes-256-cbc";
+const ENCRYPTION_KEY = crypto
+  .createHash("sha256")
+  .update(process.env.ENCRYPTION_KEY || "default_key_please_change")
+  .digest(); // 32 bytes
 
-  const passwordHash = await bcrypt.hash(password, 10);
-  const secretKeyHash = hashSecretKey(secretKey);
+function encryptText(plain) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(algorithm, ENCRYPTION_KEY, iv);
+  let encrypted = cipher.update(plain, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  return iv.toString("hex") + ":" + encrypted; // store as iv:encrypted
+}
 
-  try {
-    const user = await User.create({ name, email, passwordHash, secretKeyHash });
-    res.json({ message: "User created", userId: user._id });
-  } catch (err) {
-    res.status(400).json({ error: "Email already exists" });
-  }
-});
+function decryptText(payload) {
+  if (!payload) return "";
+  const [ivHex, encrypted] = payload.split(":");
+  if (!ivHex || !encrypted) return "";
+  const iv = Buffer.from(ivHex, "hex");
+  const decipher = crypto.createDecipheriv(algorithm, ENCRYPTION_KEY, iv);
+  let decrypted = decipher.update(encrypted, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+  return decrypted;
+}
 
+
+  app.post("/", async (req, res) => {
+    const { name, email, password, secretKey } = req.body;
+  
+    // Validate fields
+    if (!name || !email || !password || !secretKey) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+  
+    try {
+      // Hash password and secret key
+      const passwordHash = await bcrypt.hash(password, 10);
+      const secretKeyHash = hashSecretKey(secretKey);
+  
+      // Save user to DB
+      const user = await User.create({ name, email, passwordHash, secretKeyHash });
+  
+      res.status(201).json({
+        message: "✅ User created successfully",
+        userId: user._id,
+      });
+    } catch (err) {
+      if (err.code === 11000) {
+        // Mongo duplicate key error (email already exists)
+        return res.status(400).json({ error: "Email already exists" });
+      }
+      console.error("Signup Error:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+  app.post("/save", async (req, res) => {
+    const { userId, siteName, link, password } = req.body;
+  
+    if (!userId || !siteName || !password)
+      return res.status(400).json({ error: "Required fields missing" });
+  
+    try {
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+  
+      const encryptedPassword = encryptText(password);
+  
+      const newItem = new VaultItem({ userId, siteName, link, password: encryptedPassword });
+      await newItem.save();
+  
+      res.json({ message: "Vault item saved successfully" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to save data" });
+    }
+  });
+  
+  
 // Login
-app.post("/api/login", async (req, res) => {
+app.post("/login", async (req, res) => {
   const { email, password, secretKey } = req.body;
   if (!email || !password || !secretKey)
     return res.status(400).json({ error: "All fields required" });
@@ -100,16 +161,41 @@ app.post("/api/vault", async (req, res) => {
   }
 });
 
+
 // Get Vault Items
-app.get("/api/vault/:userId", async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const items = await VaultItem.find({ userId });
-    res.json(items);
-  } catch (err) {
-    res.status(500).json({ error: "Error fetching vault items" });
-  }
-});
+// app.get("home/:userId", async (req, res) => {
+//   const { userId } = req.params;
+//   try {
+//     const items = await VaultItem.find({ userId });
+//     res.json(items);
+//   } catch (err) {
+//     res.status(500).json({ error: "Error fetching vault items" });
+//   }
+// });
+// app.get("/home/:userId", async (req, res) => {
+//   const { userId } = req.params;
+
+//   try {
+//     const items = await VaultItem.find({ userId }).sort({ createdAt: -1 });
+
+//     // Decrypt passwords before sending
+//     const decrypted = items.map(it => ({
+//       ...it._doc,
+//       password: decryptText(it.password), // <--- decrypted here
+//     }));
+
+//     res.json(decrypted);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Error fetching vault items" });
+//   }
+// });
+
+
+
+
+
+
 
 // Delete Vault Item
 app.delete("/api/vault/:id", async (req, res) => {
@@ -121,6 +207,30 @@ app.delete("/api/vault/:id", async (req, res) => {
     res.status(500).json({ error: "Error deleting vault item" });
   }
 });
+// ✅ Get all vault items for a specific user
+app.get("/vault/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const items = await VaultItem.find({ userId }).sort({ createdAt: -1 });
+
+    if (!items || items.length === 0) return res.status(200).json([]);
+
+    // ✅ Decrypt passwords
+    const decryptedItems = items.map(item => ({
+      ...item._doc,
+      password: decryptText(item.password), // decrypt here
+    }));
+
+    res.status(200).json(decryptedItems); // send decrypted data
+  } catch (err) {
+    console.error("Error fetching vault items:", err);
+    res.status(500).json({ error: "Error fetching vault items" });
+  }
+});
+
+
+
 
 
 app.listen(PORT, () => console.log(`🚀 Backend running on port ${PORT}`));
