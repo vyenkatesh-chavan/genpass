@@ -1,51 +1,60 @@
 "use client";
 
 import React, { useState } from "react";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+interface LoginForm {
+  email: string;
+  password: string;
+  secretKey: string;
+}
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<LoginForm>({
     email: "",
     password: "",
     secretKey: "",
   });
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<string>("");
 
-  // Handle input change
+  // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Handle login submit
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage("");
 
     try {
-      const res = await axios.post(
+      const res = await axios.post<{ message: string; userId: string }>(
         `${process.env.NEXT_PUBLIC_API_URL}/login`,
         form
       );
 
-      // ✅ Backend should return: { message: "Login successful", userId: "abc123" }
       const { message: successMsg, userId } = res.data;
 
-      // ✅ Store userId in sessionStorage
+      // Store userId in sessionStorage
       sessionStorage.setItem("userId", userId);
 
       setMessage(`✅ ${successMsg}`);
 
-      // Clear form
+      // Reset form
       setForm({ email: "", password: "", secretKey: "" });
 
-      // ✅ Redirect to /home/:userId
+      // Redirect to /home/:userId after 1 second
       setTimeout(() => router.push(`/home/${userId}`), 1000);
-    } catch (err: any) {
-      setMessage(`❌ ${err.response?.data?.error || "Login failed"}`);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setMessage(`❌ ${err.response?.data?.error || "Login failed"}`);
+      } else {
+        setMessage("❌ Login failed");
+      }
     }
   };
 
@@ -60,41 +69,35 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div className="relative">
-            <input
-              name="email"
-              type="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
-              required
-            />
-          </div>
-          
-          <div className="relative">
-            <input
-              name="password"
-              type="password"
-              placeholder="Password"
-              value={form.password}
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
-              required
-            />
-          </div>
-          
-          <div className="relative">
-            <input
-              name="secretKey"
-              type="text"
-              placeholder="Secret Key"
-              value={form.secretKey}
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
-              required
-            />
-          </div>
+          <input
+            name="email"
+            type="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+            required
+          />
+
+          <input
+            name="password"
+            type="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+            required
+          />
+
+          <input
+            name="secretKey"
+            type="text"
+            placeholder="Secret Key"
+            value={form.secretKey}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+            required
+          />
 
           <button
             type="submit"
@@ -116,8 +119,11 @@ export default function LoginPage() {
 
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-600">
-            Don't have an account?{" "}
-            <Link href="/" className="text-blue-600 hover:text-indigo-600 font-semibold hover:underline transition-colors">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/"
+              className="text-blue-600 hover:text-indigo-600 font-semibold hover:underline transition-colors"
+            >
               Sign Up
             </Link>
           </p>
