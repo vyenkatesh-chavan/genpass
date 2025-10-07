@@ -1,20 +1,28 @@
 "use client";
 
 import React, { useState } from "react";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+interface SignupForm {
+  name: string;
+  email: string;
+  password: string;
+  secretKey: string;
+}
 
 export default function SignupPage() {
   const router = useRouter();
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<SignupForm>({
     name: "",
     email: "",
     password: "",
     secretKey: "",
   });
-  const [message, setMessage] = useState("");
+
+  const [message, setMessage] = useState<string>("");
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,13 +30,16 @@ export default function SignupPage() {
   };
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage("");
 
     try {
-      // Send signup request to backend (endpoint is "/")
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/`, form);
+      // Send signup request to backend
+      const res = await axios.post<{ message: string; userId: string }>(
+        `${process.env.NEXT_PUBLIC_API_URL}/`,
+        form
+      );
 
       const { message: successMsg, userId } = res.data;
 
@@ -42,8 +53,12 @@ export default function SignupPage() {
 
       // Redirect to /home/:userId after 1 second
       setTimeout(() => router.push(`/home/${userId}`), 1000);
-    } catch (err: any) {
-      setMessage(`❌ ${err.response?.data?.error || "Signup failed"}`);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setMessage(`❌ ${err.response?.data?.error || "Signup failed"}`);
+      } else {
+        setMessage("❌ Signup failed");
+      }
     }
   };
 
@@ -58,53 +73,45 @@ export default function SignupPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div className="relative">
-            <input
-              name="name"
-              type="text"
-              placeholder="Name"
-              value={form.name}
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
-              required
-            />
-          </div>
-          
-          <div className="relative">
-            <input
-              name="email"
-              type="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
-              required
-            />
-          </div>
-          
-          <div className="relative">
-            <input
-              name="password"
-              type="password"
-              placeholder="Password"
-              value={form.password}
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
-              required
-            />
-          </div>
-          
-          <div className="relative">
-            <input
-              name="secretKey"
-              type="text"
-              placeholder="Secret Key"
-              value={form.secretKey}
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
-              required
-            />
-          </div>
+          <input
+            name="name"
+            type="text"
+            placeholder="Name"
+            value={form.name}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+            required
+          />
+
+          <input
+            name="email"
+            type="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+            required
+          />
+
+          <input
+            name="password"
+            type="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+            required
+          />
+
+          <input
+            name="secretKey"
+            type="text"
+            placeholder="Secret Key"
+            value={form.secretKey}
+            onChange={handleChange}
+            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+            required
+          />
 
           <button
             type="submit"
@@ -127,7 +134,10 @@ export default function SignupPage() {
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-600">
             Already have an account?{" "}
-            <Link href="/login" className="text-purple-600 hover:text-blue-600 font-semibold hover:underline transition-colors">
+            <Link
+              href="/login"
+              className="text-purple-600 hover:text-blue-600 font-semibold hover:underline transition-colors"
+            >
               Login
             </Link>
           </p>
