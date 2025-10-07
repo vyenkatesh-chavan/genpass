@@ -159,61 +159,61 @@ export default function UserHomePage() {
   // ✅ Loading state
   if (!authUserId)
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-950">
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 from-slate-50 via-blue-50 to-indigo-50">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-          <p className="text-gray-300 text-lg font-medium">Checking authentication...</p>
+          <p className="dark:text-gray-300 text-gray-600 text-lg font-medium">Checking authentication...</p>
         </div>
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-950 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 from-slate-50 via-blue-50 to-indigo-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
             Your Vault
           </h1>
-          <p className="text-gray-400">Securely manage your passwords</p>
+          <p className="dark:text-gray-400 text-gray-600">Securely manage your passwords</p>
         </div>
 
         {/* Add Entry Form */}
-        <div className="bg-gray-800 shadow-xl rounded-2xl p-8 mb-8 border border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-100 mb-6 flex items-center gap-2">
+        <div className="dark:bg-gray-800 bg-white dark:border-gray-700 shadow-xl rounded-2xl p-8 mb-8 border border-gray-100">
+          <h2 className="text-xl font-semibold dark:text-gray-100 text-gray-800 mb-6 flex items-center gap-2">
             <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
             Add New Entry
           </h2>
 
           <form onSubmit={handleSave} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Site Name</label>
+              <label className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-2">Site Name</label>
               <input
                 name="siteName"
                 type="text"
                 placeholder="e.g., GitHub, Gmail, Netflix"
                 value={form.siteName}
                 onChange={handleChange}
-                className="w-full bg-gray-900 border border-gray-700 text-gray-100 placeholder-gray-500 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                className="w-full dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Site URL</label>
+              <label className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-2">Site URL</label>
               <input
                 name="link"
                 type="url"
                 placeholder="https://example.com"
                 value={form.link}
                 onChange={handleChange}
-                className="w-full bg-gray-900 border border-gray-700 text-gray-100 placeholder-gray-500 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                className="w-full dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+              <label className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-2">Password</label>
               <div className="flex gap-2">
                 <input
                   name="password"
@@ -221,13 +221,13 @@ export default function UserHomePage() {
                   placeholder="Enter or generate password"
                   value={form.password}
                   onChange={handleChange}
-                  className="flex-1 bg-gray-900 border border-gray-700 text-gray-100 placeholder-gray-500 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-mono"
+                  className="flex-1 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-mono"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowGenerator((prev) => !prev)}
-                  className="bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-gray-100 px-5 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow"
+                  className="dark:bg-gradient-to-r dark:from-gray-700 dark:to-gray-600 dark:hover:from-gray-600 dark:hover:to-gray-500 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 px-5 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow"
                 >
                   {showGenerator ? "Hide" : "Generate"}
                 </button>
@@ -235,20 +235,20 @@ export default function UserHomePage() {
             </div>
 
             {showGenerator && (
-              <div className="bg-gradient-to-br from-gray-900 to-slate-900 p-5 rounded-xl space-y-4 border border-gray-700 animate-in fade-in slide-in-from-top-2 duration-300">
-                <h3 className="font-semibold text-gray-200 text-sm">Password Generator Options</h3>
+              <div className="dark:bg-gradient-to-br dark:from-gray-900 dark:to-slate-900 dark:border-gray-700 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-xl space-y-4 border border-blue-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                <h3 className="font-semibold dark:text-gray-200 text-gray-800 text-sm">Password Generator Options</h3>
 
                 <div className="space-y-3">
                   {(["letters", "numbers", "symbols"] as (keyof PasswordOptions)[]).map((key) => (
-                    <div key={key} className="flex items-center justify-between bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-700">
-                      <label className="text-sm font-medium text-gray-300 capitalize">{key}</label>
+                    <div key={key} className="flex items-center justify-between dark:bg-gray-800 dark:border-gray-700 bg-white p-3 rounded-lg shadow-sm">
+                      <label className="text-sm font-medium dark:text-gray-300 text-gray-700 capitalize">{key}</label>
                       <input
                         name={key}
                         type="number"
                         min={0}
                         value={passwordOptions[key]}
                         onChange={handleGeneratorChange}
-                        className="bg-gray-900 border border-gray-700 text-gray-100 p-2 w-20 rounded-md text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 border border-gray-300 p-2 w-20 rounded-md text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       />
                     </div>
                   ))}
@@ -276,8 +276,8 @@ export default function UserHomePage() {
             <div
               className={`mt-5 p-4 rounded-lg text-center font-medium animate-in fade-in slide-in-from-top-1 duration-300 ${
                 message.startsWith("✅")
-                  ? "bg-green-900 text-green-300 border border-green-700"
-                  : "bg-red-900 text-red-300 border border-red-700"
+                  ? "dark:bg-green-900 dark:text-green-300 dark:border-green-700 bg-green-50 text-green-700 border border-green-200"
+                  : "dark:bg-red-900 dark:text-red-300 dark:border-red-700 bg-red-50 text-red-700 border border-red-200"
               }`}
             >
               {message}
@@ -286,43 +286,43 @@ export default function UserHomePage() {
         </div>
 
         {/* Search & Saved Entries */}
-        <div className="bg-gray-800 shadow-xl rounded-2xl p-6 mb-8 border border-gray-700">
-          <label className="block text-sm font-medium text-gray-300 mb-3">Search Entries</label>
+        <div className="dark:bg-gray-800 dark:border-gray-700 bg-white shadow-xl rounded-2xl p-6 mb-8 border border-gray-100">
+          <label className="block text-sm font-medium dark:text-gray-300 text-gray-700 mb-3">Search Entries</label>
           <input
             type="text"
             placeholder="Search by site name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-700 text-gray-100 placeholder-gray-500 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+            className="w-full dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
           />
         </div>
 
-        <div className="bg-gray-800 shadow-xl rounded-2xl p-8 border border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-100 mb-6 flex items-center gap-2">
+        <div className="dark:bg-gray-800 dark:border-gray-700 bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
+          <h2 className="text-xl font-semibold dark:text-gray-100 text-gray-800 mb-6 flex items-center gap-2">
             <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
             Saved Entries
-            <span className="ml-auto text-sm font-normal text-gray-400">
+            <span className="ml-auto text-sm font-normal dark:text-gray-400 text-gray-500">
               {filteredEntries.length} {filteredEntries.length === 1 ? "entry" : "entries"}
             </span>
           </h2>
 
           {filteredEntries.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-400 font-medium">No entries found</p>
-              <p className="text-gray-500 text-sm mt-1">Add your first password entry above</p>
+              <p className="dark:text-gray-400 text-gray-500 font-medium">No entries found</p>
+              <p className="dark:text-gray-500 text-gray-400 text-sm mt-1">Add your first password entry above</p>
             </div>
           ) : (
             <ul className="space-y-4">
               {filteredEntries.map((item) => (
                 <li
                   key={item._id}
-                  className="bg-gradient-to-br from-gray-900 to-slate-900 rounded-xl p-5 border border-gray-700 hover:border-blue-600 transition-all duration-200 hover:shadow-md"
+                  className="dark:bg-gradient-to-br dark:from-gray-900 dark:to-slate-900 dark:border-gray-700 dark:hover:border-blue-600 bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-5 border border-gray-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md"
                 >
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-start gap-2">
                         <span className="text-gray-500 font-medium text-sm min-w-16">Site:</span>
-                        <span className="text-gray-100 font-semibold">{item.siteName}</span>
+                        <span className="dark:text-gray-100 text-gray-900 font-semibold">{item.siteName}</span>
                       </div>
 
                       <div className="flex items-start gap-2">
@@ -331,7 +331,7 @@ export default function UserHomePage() {
                           href={item.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-300 underline break-all transition-colors"
+                          className="dark:text-blue-400 dark:hover:text-blue-300 text-blue-600 hover:text-blue-700 underline break-all transition-colors"
                         >
                           {item.link}
                         </a>
@@ -339,7 +339,7 @@ export default function UserHomePage() {
 
                       <div className="flex items-start gap-2">
                         <span className="text-gray-500 font-medium text-sm min-w-16">Password:</span>
-                        <span className="text-gray-100 font-mono bg-gray-800 px-3 py-1 rounded border border-gray-700">
+                        <span className="dark:text-gray-100 dark:bg-gray-800 dark:border-gray-700 text-gray-900 font-mono bg-white px-3 py-1 rounded border border-gray-200">
                           {item.password}
                         </span>
                         <button
@@ -351,7 +351,7 @@ export default function UserHomePage() {
                               setMessage("❌ Failed to copy password.");
                             }
                           }}
-                          className="text-blue-400 hover:text-blue-300 p-2 rounded-full hover:bg-gray-700 transition-colors"
+                          className="dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-gray-700 text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-100 transition-colors"
                         >
                           Copy
                         </button>
