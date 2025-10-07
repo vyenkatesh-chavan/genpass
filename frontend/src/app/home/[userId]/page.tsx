@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios, { AxiosError } from "axios";
 
@@ -19,9 +19,21 @@ interface PasswordOptions {
   symbols: number;
 }
 
+// ✅ Utility: copy text to clipboard
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (err) {
+    console.error("Failed to copy text:", err);
+    return false;
+  }
+};
+
 export default function UserHomePage() {
   const router = useRouter();
-  const { userId } = useParams();
+  const params = useParams();
+  const userId = params?.userId ?? "";
 
   const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [form, setForm] = useState<Omit<VaultEntry, "_id">>({
@@ -57,7 +69,7 @@ export default function UserHomePage() {
     fetchUserData(storedUserId);
   }, [router, userId]);
 
-  // ✅ Fetch user data
+  // ✅ Fetch user vault entries
   const fetchUserData = async (id: string) => {
     try {
       const res = await axios.get<VaultEntry[]>(
@@ -73,15 +85,14 @@ export default function UserHomePage() {
 
   // ✅ Handle input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Handle password generator input change
+  // ✅ Handle generator options change
   const handleGeneratorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPasswordOptions({
-      ...passwordOptions,
-      [e.target.name]: Number(e.target.value),
-    });
+    const { name, value } = e.target;
+    setPasswordOptions((prev) => ({ ...prev, [name]: Number(value) }));
   };
 
   // ✅ Generate password
@@ -99,20 +110,20 @@ export default function UserHomePage() {
       pwd += symbols[Math.floor(Math.random() * symbols.length)];
 
     pwd = pwd.split("").sort(() => Math.random() - 0.5).join("");
-    setForm({ ...form, password: pwd });
+    setForm((prev) => ({ ...prev, password: pwd }));
   };
 
   // ✅ Save entry
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/save`,
-        { userId, ...form }
-      );
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/save`, {
+        userId,
+        ...form,
+      });
       setMessage("✅ Data saved successfully!");
       setForm({ siteName: "", link: "", password: "" });
-      fetchUserData(userId as string);
+      fetchUserData(userId);
     } catch (err) {
       const error = err as AxiosError<{ error?: string }>;
       console.error(error);
@@ -125,22 +136,27 @@ export default function UserHomePage() {
     try {
       const res = await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/vault/${id}`);
       if (res.status === 200) {
-        setEntries(entries.filter((item) => item._id !== id));
+        setEntries((prev) => prev.filter((item) => item._id !== id));
         setMessage("✅ Entry deleted successfully!");
       }
     } catch (err) {
       const error = err as AxiosError<{ error?: string }>;
-      console.error(error);
+      console.error("Delete error:", error.response?.data || error.message);
       setMessage(`❌ ${error.response?.data?.error || "Failed to delete entry"}`);
     }
   };
   
 
-  // 🔹 Filter entries based on search term
-  const filteredEntries = entries.filter((entry) =>
-    entry.siteName.toLowerCase().includes(searchTerm.toLowerCase())
+  // 🔹 Filter entries
+  const filteredEntries = useMemo(
+    () =>
+      entries.filter((entry) =>
+        entry.siteName.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [entries, searchTerm]
   );
 
+  // ✅ Loading state
   if (!authUserId)
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -210,7 +226,7 @@ export default function UserHomePage() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowGenerator(!showGenerator)}
+                  onClick={() => setShowGenerator((prev) => !prev)}
                   className="bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 px-5 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow"
                 >
                   {showGenerator ? "Hide" : "Generate"}
@@ -269,7 +285,7 @@ export default function UserHomePage() {
           )}
         </div>
 
-        {/* Search Bar */}
+        {/* Search & Saved Entries */}
         <div className="bg-white shadow-xl rounded-2xl p-6 mb-8 border border-gray-100">
           <label className="block text-sm font-medium text-gray-700 mb-3">Search Entries</label>
           <input
@@ -281,7 +297,6 @@ export default function UserHomePage() {
           />
         </div>
 
-        {/* Saved Entries */}
         <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
           <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
             <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
@@ -293,21 +308,6 @@ export default function UserHomePage() {
 
           {filteredEntries.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  />
-                </svg>
-              </div>
               <p className="text-gray-500 font-medium">No entries found</p>
               <p className="text-gray-400 text-sm mt-1">Add your first password entry above</p>
             </div>
@@ -342,6 +342,19 @@ export default function UserHomePage() {
                         <span className="text-gray-900 font-mono bg-white px-3 py-1 rounded border border-gray-200">
                           {item.password}
                         </span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (await copyToClipboard(item.password)) {
+                              setMessage("✅ Password copied to clipboard!");
+                            } else {
+                              setMessage("❌ Failed to copy password.");
+                            }
+                          }}
+                          className="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-100 transition-colors"
+                        >
+                          Copy
+                        </button>
                       </div>
                     </div>
 
