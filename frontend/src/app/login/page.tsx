@@ -59,13 +59,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-md border border-gray-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-gray-900">
+      <div className="bg-gray-800 shadow-2xl rounded-2xl p-8 w-full max-w-md border border-gray-700">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-2">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 mb-2">
             Welcome Back
           </h1>
-          <p className="text-gray-500 text-sm">Sign in to continue to your account</p>
+          <p className="text-gray-400 text-sm">Sign in to continue to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -75,7 +75,7 @@ export default function LoginPage() {
             placeholder="Email"
             value={form.email}
             onChange={handleChange}
-            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+            className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-500"
             required
           />
 
@@ -85,7 +85,7 @@ export default function LoginPage() {
             placeholder="Password"
             value={form.password}
             onChange={handleChange}
-            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+            className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-500"
             required
           />
 
@@ -95,7 +95,7 @@ export default function LoginPage() {
             placeholder="Secret Key"
             value={form.secretKey}
             onChange={handleChange}
-            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+            className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-500"
             required
           />
 
@@ -110,19 +110,19 @@ export default function LoginPage() {
         {message && (
           <div className="mt-5 p-3 rounded-lg text-center font-medium animate-fade-in">
             {message.startsWith("✅") ? (
-              <span className="text-green-600 bg-green-50 block py-2 rounded-md">{message}</span>
+              <span className="text-green-400 bg-green-900 bg-opacity-30 block py-2 rounded-md">{message}</span>
             ) : (
-              <span className="text-red-600 bg-red-50 block py-2 rounded-md">{message}</span>
+              <span className="text-red-400 bg-red-900 bg-opacity-30 block py-2 rounded-md">{message}</span>
             )}
           </div>
         )}
 
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-400">
             Don&apos;t have an account?{" "}
             <Link
               href="/"
-              className="text-blue-600 hover:text-indigo-600 font-semibold hover:underline transition-colors"
+              className="text-blue-400 hover:text-indigo-400 font-semibold hover:underline transition-colors"
             >
               Sign Up
             </Link>
