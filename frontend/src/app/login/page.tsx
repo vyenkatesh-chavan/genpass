@@ -1,132 +1,374 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { useRouter, useParams } from "next/navigation";
 import axios, { AxiosError } from "axios";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 
-interface LoginForm {
-  email: string;
+// ✅ Vault entry interface
+interface VaultEntry {
+  _id: string;
+  siteName: string;
+  link: string;
   password: string;
-  secretKey: string;
 }
 
-export default function LoginPage() {
+// ✅ Password generator options interface
+interface PasswordOptions {
+  letters: number;
+  numbers: number;
+  symbols: number;
+}
+
+// ✅ Utility: copy text to clipboard
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (err) {
+    console.error("Failed to copy text:", err);
+    return false;
+  }
+};
+
+export default function UserHomePage() {
   const router = useRouter();
+  const params = useParams();
+  const userId = params?.userId ?? "";
 
-  const [form, setForm] = useState<LoginForm>({
-    email: "",
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [form, setForm] = useState<Omit<VaultEntry, "_id">>({
+    siteName: "",
+    link: "",
     password: "",
-    secretKey: "",
   });
+  const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [message, setMessage] = useState<string>("");
+  const [showGenerator, setShowGenerator] = useState<boolean>(false);
+  const [passwordOptions, setPasswordOptions] = useState<PasswordOptions>({
+    letters: 6,
+    numbers: 2,
+    symbols: 2,
+  });
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Handle input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  // ✅ Check authentication
+  useEffect(() => {
+    const storedUserId = sessionStorage.getItem("userId");
+    if (!storedUserId) {
+      router.push("/login");
+      return;
+    }
 
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setMessage("");
+    if (storedUserId !== userId) {
+      alert("You can only access your own data!");
+      router.push(`/home/${storedUserId}`);
+      return;
+    }
 
+    setAuthUserId(storedUserId);
+    fetchUserData(storedUserId);
+  }, [router, userId]);
+
+  // ✅ Fetch user vault entries
+  const fetchUserData = async (id: string) => {
     try {
-      const res = await axios.post<{ message: string; userId: string }>(
-        `${process.env.NEXT_PUBLIC_API_URL}/login`,
-        form
+      const res = await axios.get<VaultEntry[]>(
+        `${process.env.NEXT_PUBLIC_API_URL}/vault/${id}`
       );
-
-      const { message: successMsg, userId } = res.data;
-
-      // Store userId in sessionStorage
-      sessionStorage.setItem("userId", userId);
-
-      setMessage(`✅ ${successMsg}`);
-
-      // Reset form
-      setForm({ email: "", password: "", secretKey: "" });
-
-      // Redirect to /home/:userId after 1 second
-      setTimeout(() => router.push(`/home/${userId}`), 1000);
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setMessage(`❌ ${err.response?.data?.error || "Login failed"}`);
-      } else {
-        setMessage("❌ Login failed");
-      }
+      setEntries(res.data);
+    } catch (err) {
+      const error = err as AxiosError;
+      console.error("Error fetching user data:", error.message);
+      setMessage("❌ Failed to fetch entries");
     }
   };
 
+  // ✅ Handle input change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ✅ Handle generator options change
+  const handleGeneratorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPasswordOptions((prev) => ({ ...prev, [name]: Number(value) }));
+  };
+
+  // ✅ Generate password
+  const generatePassword = () => {
+    const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const numbers = "0123456789";
+    const symbols = "!@#$%^&*()_+{}[]<>?/|";
+
+    let pwd = "";
+    for (let i = 0; i < passwordOptions.letters; i++)
+      pwd += letters[Math.floor(Math.random() * letters.length)];
+    for (let i = 0; i < passwordOptions.numbers; i++)
+      pwd += numbers[Math.floor(Math.random() * numbers.length)];
+    for (let i = 0; i < passwordOptions.symbols; i++)
+      pwd += symbols[Math.floor(Math.random() * symbols.length)];
+
+    pwd = pwd.split("").sort(() => Math.random() - 0.5).join("");
+    setForm((prev) => ({ ...prev, password: pwd }));
+  };
+
+  // ✅ Save entry
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/save`, {
+        userId,
+        ...form,
+      });
+      setMessage("✅ Data saved successfully!");
+      setForm({ siteName: "", link: "", password: "" });
+      fetchUserData(userId);
+    } catch (err) {
+      const error = err as AxiosError<{ error?: string }>;
+      console.error(error);
+      setMessage(`❌ ${error.response?.data?.error || "Failed to save data"}`);
+    }
+  };
+
+  // ✅ Delete entry
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/vault/${id}`);
+      if (res.status === 200) {
+        setEntries((prev) => prev.filter((item) => item._id !== id));
+        setMessage("✅ Entry deleted successfully!");
+      }
+    } catch (err) {
+      const error = err as AxiosError<{ error?: string }>;
+      console.error("Delete error:", error.response?.data || error.message);
+      setMessage(`❌ ${error.response?.data?.error || "Failed to delete entry"}`);
+    }
+  };
+  
+
+  // 🔹 Filter entries
+  const filteredEntries = useMemo(
+    () =>
+      entries.filter((entry) =>
+        entry.siteName.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [entries, searchTerm]
+  );
+
+  // ✅ Loading state
+  if (!authUserId)
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-indigo-950">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+          <p className="text-gray-300 text-lg font-medium">Checking authentication...</p>
+        </div>
+      </div>
+    );
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-gray-900">
-      <div className="bg-gray-800 shadow-2xl rounded-2xl p-8 w-full max-w-md border border-gray-700">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-indigo-950 py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 mb-2">
-            Welcome Back
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">
+            Your Vault
           </h1>
-          <p className="text-gray-400 text-sm">Sign in to continue to your account</p>
+          <p className="text-gray-400">Securely manage your passwords</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <input
-            name="email"
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-500"
-            required
-          />
+        {/* Add Entry Form */}
+        <div className="bg-gray-800 shadow-xl rounded-2xl p-8 mb-8 border border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-100 mb-6 flex items-center gap-2">
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+            Add New Entry
+          </h2>
 
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-500"
-            required
-          />
+          <form onSubmit={handleSave} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Site Name</label>
+              <input
+                name="siteName"
+                type="text"
+                placeholder="e.g., GitHub, Gmail, Netflix"
+                value={form.siteName}
+                onChange={handleChange}
+                className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                required
+              />
+            </div>
 
-          <input
-            name="secretKey"
-            type="text"
-            placeholder="Secret Key"
-            value={form.secretKey}
-            onChange={handleChange}
-            className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-500"
-            required
-          />
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Site URL</label>
+              <input
+                name="link"
+                type="url"
+                placeholder="https://example.com"
+                value={form.link}
+                onChange={handleChange}
+                className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                required
+              />
+            </div>
 
-          <button
-            type="submit"
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
-          >
-            Login
-          </button>
-        </form>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+              <div className="flex gap-2">
+                <input
+                  name="password"
+                  type="text"
+                  placeholder="Enter or generate password"
+                  value={form.password}
+                  onChange={handleChange}
+                  className="flex-1 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-mono"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowGenerator((prev) => !prev)}
+                  className="bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-gray-200 px-5 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow"
+                >
+                  {showGenerator ? "Hide" : "Generate"}
+                </button>
+              </div>
+            </div>
 
-        {message && (
-          <div className="mt-5 p-3 rounded-lg text-center font-medium animate-fade-in">
-            {message.startsWith("✅") ? (
-              <span className="text-green-400 bg-green-900 bg-opacity-30 block py-2 rounded-md">{message}</span>
-            ) : (
-              <span className="text-red-400 bg-red-900 bg-opacity-30 block py-2 rounded-md">{message}</span>
+            {showGenerator && (
+              <div className="bg-gradient-to-br from-indigo-900 to-blue-900 bg-opacity-50 p-5 rounded-xl space-y-4 border border-blue-800 animate-in fade-in slide-in-from-top-2 duration-300">
+                <h3 className="font-semibold text-gray-200 text-sm">Password Generator Options</h3>
+
+                <div className="space-y-3">
+                  {(["letters", "numbers", "symbols"] as (keyof PasswordOptions)[]).map((key) => (
+                    <div key={key} className="flex items-center justify-between bg-gray-800 p-3 rounded-lg shadow-sm">
+                      <label className="text-sm font-medium text-gray-300 capitalize">{key}</label>
+                      <input
+                        name={key}
+                        type="number"
+                        min={0}
+                        value={passwordOptions[key]}
+                        onChange={handleGeneratorChange}
+                        className="bg-gray-700 border border-gray-600 text-white p-2 w-20 rounded-md text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={generatePassword}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white w-full py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Generate Password
+                </button>
+              </div>
             )}
-          </div>
-        )}
 
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-400">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/"
-              className="text-blue-400 hover:text-indigo-400 font-semibold hover:underline transition-colors"
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
-              Sign Up
-            </Link>
-          </p>
+              Save Entry
+            </button>
+          </form>
+
+          {message && (
+            <div
+              className={`mt-5 p-4 rounded-lg text-center font-medium animate-in fade-in slide-in-from-top-1 duration-300 ${
+                message.startsWith("✅")
+                  ? "bg-green-900 bg-opacity-30 text-green-400 border border-green-800"
+                  : "bg-red-900 bg-opacity-30 text-red-400 border border-red-800"
+              }`}
+            >
+              {message}
+            </div>
+          )}
+        </div>
+
+        {/* Search & Saved Entries */}
+        <div className="bg-gray-800 shadow-xl rounded-2xl p-6 mb-8 border border-gray-700">
+          <label className="block text-sm font-medium text-gray-300 mb-3">Search Entries</label>
+          <input
+            type="text"
+            placeholder="Search by site name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+          />
+        </div>
+
+        <div className="bg-gray-800 shadow-xl rounded-2xl p-8 border border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-100 mb-6 flex items-center gap-2">
+            <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
+            Saved Entries
+            <span className="ml-auto text-sm font-normal text-gray-400">
+              {filteredEntries.length} {filteredEntries.length === 1 ? "entry" : "entries"}
+            </span>
+          </h2>
+
+          {filteredEntries.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-400 font-medium">No entries found</p>
+              <p className="text-gray-500 text-sm mt-1">Add your first password entry above</p>
+            </div>
+          ) : (
+            <ul className="space-y-4">
+              {filteredEntries.map((item) => (
+                <li
+                  key={item._id}
+                  className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl p-5 border border-gray-600 hover:border-blue-500 transition-all duration-200 hover:shadow-md"
+                >
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-gray-400 font-medium text-sm min-w-16">Site:</span>
+                        <span className="text-gray-100 font-semibold">{item.siteName}</span>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <span className="text-gray-400 font-medium text-sm min-w-16">Link:</span>
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 underline break-all transition-colors"
+                        >
+                          {item.link}
+                        </a>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <span className="text-gray-400 font-medium text-sm min-w-16">Password:</span>
+                        <span className="text-gray-100 font-mono bg-gray-900 px-3 py-1 rounded border border-gray-600">
+                          {item.password}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (await copyToClipboard(item.password)) {
+                              setMessage("✅ Password copied to clipboard!");
+                            } else {
+                              setMessage("❌ Failed to copy password.");
+                            }
+                          }}
+                          className="text-blue-400 hover:text-blue-300 p-2 rounded-full hover:bg-blue-900 hover:bg-opacity-30 transition-colors"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleDelete(item._id)}
+                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>
